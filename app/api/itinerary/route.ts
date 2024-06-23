@@ -1,6 +1,8 @@
 import OpenAI from "openai"
 
-const openai = new OpenAI()
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 const dummyResponse = [
   {
@@ -146,6 +148,8 @@ const dummyResponse = [
 ]
 
 export async function POST(request: Request) {
+  // return Response.json(dummyResponse)
+
   const { region, timeframe } = await request.json()
 
   const completion = await openai.chat.completions.create({
