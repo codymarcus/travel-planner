@@ -1,95 +1,117 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client"
+import Image from "next/image"
+// import styles from "./page.module.css"
+import { useState, useEffect } from "react"
+import countries from "./countries"
+
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Autocomplete,
+  Box,
+  TextField,
+  Typography,
+} from "@mui/material"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+
+import MyAwesomeMap from "./map"
 
 export default function Home() {
+  const [country, setCountry] = useState("France")
+  const [days, setDays] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchItinerary = async () => {
+      setIsLoading(true)
+      const itinerary = await fetch("http://localhost:3000/api/itinerary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          region: country,
+          timeframe: "2 weeks",
+        }),
+      })
+      setDays(await itinerary.json())
+      setIsLoading(false)
+    }
+
+    fetchItinerary()
+  }, [country])
+
+  // Map days to array where the same location on consecutive days is grouped
+  // together
+  const groupedDays = days.reduce((acc, day, index) => {
+    if (index === 0 || days[index - 1].location.name !== day.location.name) {
+      acc.push([day])
+    } else {
+      acc[acc.length - 1].push(day)
+    }
+    return acc
+  }, [])
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+    <Box
+      sx={{
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden",
+      }}
+    >
+      <Box sx={{ display: "flex", justifyContent: "center", paddingY: 2 }}>
+        <Autocomplete
+          options={countries}
+          renderInput={(params) => <TextField {...params} label="Country" />}
+          onChange={(_, value) => setCountry(value)}
+          sx={{ width: 300 }}
         />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
+      </Box>
+      <Box
+        sx={{
+          display: "flex",
+          height: "90%",
+        }}
+      >
+        <Box sx={{ flex: 1, marginRight: 1 }}>
+          {!isLoading && (
+            <MyAwesomeMap locations={days.map((day) => day.location)} />
+          )}
+        </Box>
+        <Box
+          sx={{ flex: 1, marginLeft: 1, overflowY: "auto", paddingBottom: 1 }}
         >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+          {isLoading
+            ? "Loading..."
+            : groupedDays.map((days, index) => (
+                <Accordion
+                  defaultExpanded
+                  sx={{ backgroundColor: "#f0f6ff" }}
+                  key={index}
+                >
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1-content"
+                    id="panel1-header"
+                  >
+                    <Typography variant="h5">
+                      {days[0].location.name} ({days.length} day
+                      {days.length > 1 ? "s" : ""})
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    {days.map(({ day, description }) => (
+                      <Typography key={day}>
+                        <b>Day {day}:</b> {description}
+                      </Typography>
+                    ))}
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+        </Box>
+      </Box>
+    </Box>
+  )
 }
