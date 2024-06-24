@@ -94,9 +94,23 @@ function Map({ locations }) {
       strokeWidth: 4,
     })
 
-    // Create point series for markers
-    // https://www.amcharts.com/docs/v5/charts/map-chart/map-point-series/
-    let pointSeries = chart.series.push(am5map.MapPointSeries.new(root, {}))
+    let pointSeries = chart.series.push(
+      am5map.MapPointSeries.new(root, {
+        geoJSON: {
+          type: "FeatureCollection",
+          features: uniqueLocations.map((location) => ({
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [location.longitude, location.latitude],
+            },
+            properties: {
+              name: location.name,
+            },
+          })),
+        },
+      })
+    )
 
     pointSeries.bullets.push(function () {
       let circle = am5.Circle.new(root, {
@@ -116,28 +130,21 @@ function Map({ locations }) {
       })
     })
 
-    const pointsToConnect = nonRepeatingLocations.map((location) => {
-      return addCity(
-        {
-          latitude: location.latitude,
-          longitude: location.longitude,
+    lineSeries.data.setAll([
+      {
+        geometry: {
+          type: "LineString",
+          coordinates: uniqueLocations.map((location) => [
+            location.longitude,
+            location.latitude,
+          ]),
         },
-        location.name
-      )
-    })
-    let lineDataItem = lineSeries.pushDataItem({ pointsToConnect })
+      },
+    ])
 
     polygonSeries.events.on("datavalidated", function () {
       chart.goHome()
     })
-
-    function addCity(coords, title) {
-      return pointSeries.pushDataItem({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        name: title,
-      })
-    }
 
     return () => {
       root.dispose()
