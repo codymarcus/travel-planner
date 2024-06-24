@@ -23,7 +23,7 @@ export default function Home() {
   useEffect(() => {
     const fetchItinerary = async () => {
       setIsLoading(true)
-      const itinerary = await fetch("http://localhost:3000/api/itinerary", {
+      const itinerary = await fetch("/api/itinerary", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
